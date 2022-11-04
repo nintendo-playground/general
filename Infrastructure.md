@@ -1,9 +1,10 @@
 ## Playground Infrastructure
-All playground services are hosted on a single [Vultr](https://vultr.com) instance, because:
-* Using a different instance for each service costs money and I do not want to ask for or even depend on donations.
+All playground services are hosted on a single [Oracle Cloud](https://cloud.oracle.com) instance (Ampere A1 with 1 OCPU and 6 GB memory), because:
+* This is part of Oracle's free tier and I do not want to ask for or even depend on donations.
 * I do not expect much traffic on the playground, so a single instance is probably enough.
 
-The instance is running the latest version of Ubuntu, and was set up as follows:
+The instance is running the latest version of Ubuntu. First, I edited `/root/.ssh/authorized_keys` to enable root login, because this is more convenient for me. Then, I set up the system as follows:
+
 ```sh
 # Install docker
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -20,10 +21,11 @@ apt install certbot python3-certbot-nginx
 echo 'certbot renew -q --nginx' > /etc/cron.daily/certbot
 
 # Update firewall
-ufw allow 80/tcp
-ufw allow 443/tcp
+iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+iptables -I INPUT -p tcp --dport 443 -j ACCEPT
 
 # Install flask-migrate
+apt install python3-pip
 pip3 install flask flask-migrate
 ```
 
@@ -58,11 +60,11 @@ certbot certonly --nginx -d dadmin-lp1.ndas.mng.nintendo-playground.com
 ```
 
 3. Clone the git repository: `git clone https://github.com/nintendo-playground/dauth-server`
-4. Add missing files if necessary. For example, for the dauth server you must provide `prod.keys` and `dev.keys` yourself.
+4. Add missing files if necessary. For example, for the dauth server you must provide `prod.keys` and `dev.keys` manually.
 
 5. Configure the service with `python3 scripts/configure.py`.
 ```
-Project name: dauth-playground-lp1
+Project name: 
 Issuer (dauth): dauth-lp1.ndas.srv.nintendo.net
 JKU (dauth): https://dcert-lp1.ndas.srv.nintendo.net/keys
 Port (dauth): 10000
@@ -102,7 +104,7 @@ server {
     ssl_certificate /etc/letsencrypt/live/dauth-lp1.ndas.srv.nintendo-playground.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/dauth-lp1.ndas.srv.nintendo-playground.com/privkey.pem;
 
-    ssl_client_certificate /etc/nginx/client-certs/NintendoNXCA2Prod1.pem;
+    ssl_client_certificate /etc/nginx/ca-certificates/NintendoNXCA2Prod1.pem;
     ssl_verify_client on;
 
     server_name dauth-lp1.ndas.srv.nintendo-playground.com;
